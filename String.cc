@@ -157,6 +157,74 @@ char& String::operator[](size_t index)
     }
 }
 
+const char& String::operator[](size_t index) const
+{
+    if(check(index))
+    {
+        return *(data_ + index);
+    }
+    else
+    {
+        throw out_of_range("index out of range");
+    }
+}
+
+char& String::at(size_t pos)
+{
+    if(check(pos))
+    {
+        return *(data_ + pos);
+    }
+    else
+    {
+        throw out_of_range("pos out of range");
+    }
+}
+
+const char& String::at(size_t pos) const
+{
+    if(check(pos))
+    {
+        return *(data_ + pos);
+    }
+    else
+    {
+        throw out_of_range("pos out of range");
+    }
+}
+
+char& String::back()
+{
+    if(!empty())
+    {
+        return *(end_ - 1);
+    }
+}
+
+const char& String::back() const
+{
+    if(!empty())
+    {
+        return *(end_ - 1);
+    }
+}
+
+char& String::front()
+{
+    if(!empty())
+    {
+        return *data_;
+    }
+}
+
+const char& String::front() const
+{
+    if(!empty())
+    {
+        return *data_;
+    }
+}
+
 String String::operator+(const String& str)
 {
     String retstr;
@@ -228,6 +296,18 @@ bool String::check(size_t index)
     }
 }
 
+const bool String::check(size_t index) const 
+{
+    if(index >= size_)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 ostream& operator<<(ostream& os, const String& str)
 {
     // os << str.begin();
@@ -236,4 +316,9 @@ ostream& operator<<(ostream& os, const String& str)
         os << *(str.begin() + i);
     }
     return os;
+}
+
+istream& operator>>(istream& is, String& str)
+{
+    
 }
