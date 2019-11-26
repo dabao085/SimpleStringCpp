@@ -71,6 +71,43 @@ String::~String()
     free();
 }
 
+    // capacity.
+void String::resize(size_t n, char c)
+{
+    if(n <= size())
+    {
+        // 方案1. destroy掉多余的空间, 但是无法deallocate。
+        for(; end_ != data_ + n;)
+        {
+            alloc_.destroy(--end_);
+        }
+        size_ = n;
+        end_ = data_ + size_;
+
+        // 方案2. 复制一份，并destroy和deallocate掉以前的空间，性能较差，但空间上较优。
+        // auto data = alloc_n_copy(data_, n);
+        // free();
+        // data_ = data.first;
+        // end_ = data.second;
+        // size_ = end_ - data_;
+    }
+    else
+    {
+        auto dataStart = alloc_.allocate(n);
+        auto dataEnd = uninitialized_copy_n(data_, size_, dataStart);
+        uninitialized_fill_n(dataEnd, n - size_, c);
+        free();
+        data_ = dataStart;
+        end_ = dataStart + n;
+        size_ = n;
+    }
+}
+
+void String::clear()
+{
+    free();
+}
+
 char& String::operator[](size_t index)
 {
     if(check(index))

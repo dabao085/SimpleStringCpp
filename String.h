@@ -19,7 +19,12 @@ public:
     String& operator=(String&&) noexcept;   // Must have noexcept.
     ~String();
 
+    // capacity
     size_t size() const { return size_; }
+    size_t length() const { return size_; }
+    void resize(size_t n, char c = ' ');
+    void clear();
+    bool empty() const { return data_ == end_; }
 
     const char* begin() const { return data_; }
     char* begin() { return data_; }

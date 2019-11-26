@@ -60,5 +60,18 @@ int main()
     cout << "print after sort..." << endl;
     for_each(strvec.begin(), strvec.end(), [](const String& str){ cout << str << endl;});
 
+    String str14("Hello World!");
+    str14.resize(5);
+    cout << "After resize: " << str14 << endl;
+    String str15("Hello");
+    str15.resize(10, '-');
+    cout << str15 << endl;
+    String str16("Hello");
+    str16.resize(10);
+    cout << str16 << " : size: " << str16.size() << endl;
+
+    str16.clear();
+    cout << "After clear: " << str16 << " : size: " << str16.size() << endl;
+
     return 0;
 }
