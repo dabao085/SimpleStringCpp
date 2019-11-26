@@ -18,6 +18,11 @@ void testMove(String&& str)
     cout << tmp << endl;
 }
 
+void printInfo(const String& name, const String& str)
+{
+    cout << name << " : content: " << str << " : "<< str.size() << " : " << str.length() << " : " << str.capacity() << endl;
+}
+
 int main()
 {
     // 测试构造
@@ -72,6 +77,18 @@ int main()
 
     str16.clear();
     cout << "After clear: " << str16 << " : size: " << str16.size() << endl;
+
+    String str17("Hello");
+    printInfo("str17", str17);
+    str17.reserve(10);
+    printInfo("str17", str17);
+    str17.reserve(8);
+    printInfo("str17", str17);
+
+    String str18 = str17;
+    printInfo("str18", str18);
+    String str19 = str17 + str18;
+    printInfo("str19", str19);
 
     return 0;
 }

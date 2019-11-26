@@ -16,6 +16,7 @@ void swap(String& lhs, String& rhs)
     swap(lhs.data_, rhs.data_);
     swap(lhs.end_, rhs.end_);
     swap(lhs.size_, rhs.size_);
+    swap(lhs.capacity_, rhs.capacity_);
 }
 
 String::String(const char* str)
@@ -24,15 +25,16 @@ String::String(const char* str)
     auto a = alloc_n_copy(str, sz);
     data_ = a.first;
     end_ = a.second;
-    size_ = sz;
+    size_ = capacity_ = sz;
 }
 
 String::String(const String& str)
 {
-    auto a = alloc_n_copy(str.data_, str.size_);
+    auto a = alloc_n_copy(str.data_, str.size_, str.capacity_);
     data_ = a.first;
     end_ = a.second;
     size_ = str.size_;
+    capacity_ = str.capacity_;
 }
 
 String::String(String&& str) noexcept
@@ -41,8 +43,9 @@ String::String(String&& str) noexcept
     data_ = str.data_;
     end_ = str.end_;
     size_ = str.size_;
+    capacity_ = str.capacity_;
     str.data_ = str.end_ = nullptr;
-    str.size_ = 0;  // 这一句加不加没有影响
+    str.size_ = str.capacity_ = 0;  // 这一句加不加没有影响
 }
 
 // swap and copy
@@ -60,8 +63,9 @@ String& String::operator=(String&& str) noexcept
     data_ = str.data_;
     end_ = str.end_;
     size_ = str.size_;
+    capacity_ = str.capacity_;
     str.data_ = str.end_ = nullptr;
-    str.size_ = 0;
+    str.size_ = str.capacity_ = 0;
 
     return *this;
 }
@@ -77,11 +81,12 @@ void String::resize(size_t n, char c)
     if(n <= size())
     {
         // 方案1. destroy掉多余的空间, 但是无法deallocate。
-        for(; end_ != data_ + n;)
+        auto capacity_end = data_ + capacity_;
+        for(; capacity_end != data_ + n;)
         {
-            alloc_.destroy(--end_);
+            alloc_.destroy(--capacity_end);
         }
-        size_ = n;
+        size_ = capacity_ = n;
         end_ = data_ + size_;
 
         // 方案2. 复制一份，并destroy和deallocate掉以前的空间，性能较差，但空间上较优。
@@ -93,19 +98,51 @@ void String::resize(size_t n, char c)
     }
     else
     {
-        auto dataStart = alloc_.allocate(n);
-        auto dataEnd = uninitialized_copy_n(data_, size_, dataStart);
-        uninitialized_fill_n(dataEnd, n - size_, c);
-        free();
-        data_ = dataStart;
-        end_ = dataStart + n;
-        size_ = n;
+        if(n <= capacity_)  // 未超过capacity, 不用申请新的空间
+        {
+            uninitialized_fill_n(end_, n - size_, c);
+            end_ = data_ + n;
+            size_ = n;
+        }
+        else
+        {
+            auto dataStart = alloc_.allocate(n);
+            auto dataEnd = uninitialized_copy_n(data_, size_, dataStart);
+            uninitialized_fill_n(dataEnd, n - size_, c);
+            free();
+            data_ = dataStart;
+            end_ = dataStart + n;
+            size_ = capacity_ = n;
+        }
     }
 }
 
 void String::clear()
 {
     free();
+}
+
+void String::reserve(size_t n)
+{
+    // 方案1. 不释放空间，只是修改capacity_大小。
+    if(size_ <= n && n <= capacity_)
+    {
+        capacity_ = n;
+    }
+    else if( n < size_)
+    {
+        capacity_ = size_;
+    }
+    else    // size > capacity_
+    {
+        auto data = alloc_n_copy(data_, size_, capacity_);
+        free(); // 释放之前的空间
+        data_ = data.first;
+        end_ = data.second;
+        size_ = end_ - data_;
+        capacity_ = n;
+    }
+    // 方案2. 释放空间，性能略差。
 }
 
 char& String::operator[](size_t index)
@@ -131,7 +168,7 @@ String String::operator+(const String& str)
 
     retstr.data_ = databegin;
     retstr.end_ = dataend2;
-    retstr.size_ = size;
+    retstr.size_ = retstr.capacity_ = size;
 
     return retstr;
 }
@@ -156,10 +193,11 @@ bool String::operator<(const String& str) const
     }
 }
 
-pair<char*, char*> String::alloc_n_copy(const char* start, size_t size)
+pair<char*, char*> String::alloc_n_copy(const char* start, size_t size, size_t capacity)
 {
     // cout << __LINE__ << " allocate size: " << size << endl;
-    auto dataStart = alloc_.allocate(size);
+    size_t realCapacity = capacity == 0 ? size : capacity;
+    auto dataStart = alloc_.allocate(realCapacity);
     auto dataEnd = uninitialized_copy_n(start, size, dataStart);
     return {dataStart, dataEnd};
 }
@@ -170,11 +208,11 @@ void String::free()
     {
         // cout << "free str: " << data_ << " size: " << size_ << endl;
         for_each(data_, end_, [](char &ch){ alloc_.destroy(&ch); });
-        alloc_.deallocate(data_, size_);
+        alloc_.deallocate(data_, capacity_);
 
         data_ = nullptr;
         end_ = nullptr;
-        size_ = 0;
+        size_ = capacity_ = 0;
     }
 }
 
